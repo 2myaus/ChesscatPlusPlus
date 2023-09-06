@@ -1,0 +1,9 @@
+/*
+!/.gitignore
+!/chesscat.cpp
+!/chesscat.hpp
+!/pieces.hpp
+!/squares.hpp
+!/demo/
+!/demo/*
+!/Makefile
