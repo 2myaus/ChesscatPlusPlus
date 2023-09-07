@@ -31,11 +31,12 @@ namespace chesscat {
         Move last_move;
 
         bool colorCanCapturePiece(Color color, Piece captured);
-        void iteratePossibleMovesFromSquare(Square square, std::function<void(const Square)> func);
+        void iteratePossibleMovesFromSquare(Square square, std::function<bool(const Square)> func);
     public:
         Position();
         ~Position();
         Piece getPiece(Square square);
+        bool isMoveLegal(Move move);
     };
 
 }

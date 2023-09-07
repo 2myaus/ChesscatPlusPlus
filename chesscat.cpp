@@ -1,4 +1,5 @@
 #include "chesscat.hpp"
+#include "squares.hpp"
 
 namespace chesscat{
 
@@ -6,8 +7,14 @@ namespace chesscat{
     const Square EmptySquare = {.row = -1, .col = -1};
     const Move EmptyMove = {.from = EmptySquare, .to = EmptySquare};
 
-    Board::Board(unsigned short cols, unsigned short rows) : num_cols(0), num_rows(0)
-    {
+    bool operator==(const Square& lhs, const Square& rhs) {
+        return lhs.row == rhs.row && lhs.col == rhs.col;
+    }
+    bool operator==(const Move& lhs, const Move& rhs) {
+        return lhs.to == rhs.to && lhs.from == rhs.from;
+    }
+
+    Board::Board(unsigned short cols, unsigned short rows) : num_cols(0), num_rows(0){
         resize(cols, rows);
     }
     void Board::resize(unsigned short new_cols, unsigned short new_rows){
@@ -96,7 +103,7 @@ namespace chesscat{
         }
         return true;
     }
-    void Position::iteratePossibleMovesFromSquare(Square square, std::function<void(const Square)> func){
+    void Position::iteratePossibleMovesFromSquare(Square square, std::function<bool(const Square)> func){ //Stop iteration if func returns true
         Piece piece = board.getPiece(square);
         if(piece.color != to_move || piece.type == Empty){
             return;
@@ -111,14 +118,33 @@ namespace chesscat{
             Square up = {.row = square.row + 1, .col = square.col};
             Square up_right = {.row = square.row + 1, .col = square.col + 1};
 
-            if (board.squareInBounds(down_left)) func(down_left);
-            if (board.squareInBounds(down)) func(down);
-            if (board.squareInBounds(down_right)) func(down_right);
-            if (board.squareInBounds(left)) func(left);
-            if (board.squareInBounds(right)) func(right);
-            if (board.squareInBounds(up_left)) func(up_left);
-            if (board.squareInBounds(up)) func(up);
-            if (board.squareInBounds(up_right)) func(up_right);
+            if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
+                if(func(down_left)) return;
+            }
+            if (board.squareInBounds(down) && colorCanCapturePiece(to_move, board.getPiece(down))){
+                if(func(down)) return;
+            }
+
+            if (board.squareInBounds(down_right) && colorCanCapturePiece(to_move, board.getPiece(down_right))){
+                if(func(down_right)) return;
+            }
+            if (board.squareInBounds(left) && colorCanCapturePiece(to_move, board.getPiece(left))){
+                if(func(left)) return;
+            }
+
+            if (board.squareInBounds(right) && colorCanCapturePiece(to_move, board.getPiece(right))){
+                if(func(right)) return;
+            }
+            if (board.squareInBounds(up_left) && colorCanCapturePiece(to_move, board.getPiece(up_left))){
+                if(func(up_left)) return;
+            }
+
+            if (board.squareInBounds(up) && colorCanCapturePiece(to_move, board.getPiece(up))){
+                if(func(up)) return;
+            }
+            if (board.squareInBounds(up_right) && colorCanCapturePiece(to_move, board.getPiece(up_right))){
+                if(func(up_right)) return;
+            }
         }
         if(piece.type == Knight){
             Square up_left = {.row = square.row + 2, .col = square.col - 1};
@@ -133,17 +159,33 @@ namespace chesscat{
             Square left_down = {.row = square.row - 1, .col = square.col - 2};
             Square left_up = {.row = square.row + 1, .col = square.col - 2};
 
-            if (board.squareInBounds(up_left)) func(up_left);
-            if (board.squareInBounds(up_right)) func(up_right);
+            if (board.squareInBounds(up_left) && colorCanCapturePiece(to_move, board.getPiece(up_left))){
+                if(func(up_left)) return;
+            }
+            if (board.squareInBounds(up_right) && colorCanCapturePiece(to_move, board.getPiece(up_right))){
+                if(func(up_right)) return;
+            }
 
-            if (board.squareInBounds(right_up)) func(right_up);
-            if (board.squareInBounds(right_down)) func(right_down);
+            if (board.squareInBounds(right_up) && colorCanCapturePiece(to_move, board.getPiece(right_up))){
+                if(func(right_up)) return;
+            }
+            if (board.squareInBounds(right_down) && colorCanCapturePiece(to_move, board.getPiece(right_down))){
+                if(func(right_down)) return;
+            }
 
-            if (board.squareInBounds(down_right)) func(down_right);
-            if (board.squareInBounds(down_left)) func(down_left);
+            if (board.squareInBounds(down_right) && colorCanCapturePiece(to_move, board.getPiece(down_right))){
+                if(func(down_right)) return;
+            }
+            if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
+                if(func(down_left)) return;
+            }
 
-            if (board.squareInBounds(left_down)) func(left_down);
-            if (board.squareInBounds(left_up)) func(left_up);
+            if (board.squareInBounds(left_down) && colorCanCapturePiece(to_move, board.getPiece(left_down))){
+                if(func(left_down)) return;
+            }
+            if (board.squareInBounds(left_up) && colorCanCapturePiece(to_move, board.getPiece(left_up))){
+                if(func(left_up)) return;
+            }
         }
         if(piece.type == Bishop || piece.type == Queen){
             for(unsigned short dir = 0; dir < 4; dir++){
@@ -175,10 +217,10 @@ namespace chesscat{
                     if(hitPiece.type != Empty){
                         if(!colorCanCapturePiece(piece.color, hitPiece)) break; //Hit a piece that cannot be captured, break
 
-                        func(current); //Hit a piece that can be captured, add move then break
+                        if(func(current)) return; //Hit a piece that can be captured, add move then break
                         break;
                     }
-                    func(current); //Didn't hit a piece, continue
+                    if(func(current)) return; //Didn't hit a piece, continue
                     current.col += dx;
                     current.row += dy;
                 }
@@ -214,10 +256,10 @@ namespace chesscat{
                     if(hitPiece.type != Empty){
                         if(!colorCanCapturePiece(piece.color, hitPiece)) break; //Hit a piece that cannot be captured, break
 
-                        func(current); //Hit a piece that can be captured, add move then break
+                        if(func(current)) return; //Hit a piece that can be captured, add move then break
                         break;
                     }
-                    func(current); //Didn't hit a piece, continue
+                    if(func(current)) return; //Didn't hit a piece, continue
                     current.col += dx;
                     current.row += dy;
                 }
@@ -245,22 +287,37 @@ namespace chesscat{
             }
 
             if(board.squareInBounds(advance_square) && board.getPiece(advance_square).type == Empty){
-                func(advance_square);
+                if(func(advance_square)) return;
                 if(board.squareInBounds(double_advance_square) && board.getPiece(double_advance_square).type == Empty) func(double_advance_square);
             }
             if(
                 board.squareInBounds(take_left_square) &&
                 board.getPiece(take_left_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_left_square))
-                ) func(take_left_square);
+                ){
+                    if(func(take_left_square)) return;
+                }
             if(
                 board.squareInBounds(take_right_square) &&
                 board.getPiece(take_right_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_right_square))
-                ) func(take_right_square);
+                ){
+                    if(func(take_right_square)) return;
+                }
         }
     }
     Piece Position::getPiece(Square square){
         return board.getPiece(square);
+    }
+    bool Position::isMoveLegal(Move move){
+        bool wasLegal = false;
+        iteratePossibleMovesFromSquare(move.from, [&move, &wasLegal](const Square square) -> bool{
+            if(square == move.to){
+                wasLegal = true;
+                return true;
+            }
+            return false;
+        });
+        return wasLegal;
     }
 }
