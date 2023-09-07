@@ -2,7 +2,7 @@
 CXX = g++
 
 # Compiler flags
-CXXFLAGS = -Wall -Werror -Wextra
+CXXFLAGS = -Wall -Wextra
 
 # Library name
 LIBRARY = libchesscat.a
