@@ -142,6 +142,8 @@ namespace chesscat{
             Square up = {.row = square.row + 1, .col = square.col};
             Square up_right = {.row = square.row + 1, .col = square.col + 1};
 
+            //TODO: Add castle
+
             if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
                 if(func(down_left) == BreakMoveIteration) return;
             }
@@ -316,6 +318,7 @@ namespace chesscat{
                     if(func(double_advance_square) == BreakMoveIteration) return;
                 }
             }
+            //TODO: Add en passant
             if(
                 board.squareInBounds(take_left_square) &&
                 board.getPiece(take_left_square).type != Empty &&
@@ -401,5 +404,12 @@ namespace chesscat{
             }
             return internal::ContinueMoveIteration;
         });
+    }
+    void Position::PlayMove(Move move, PieceType pawn_promotion){
+        if(!isMoveLegal(move)){
+            throw "Illegal move!";
+        }
+        playMoveNoConfirm(move, pawn_promotion);
+        last_move = move;
     }
 }

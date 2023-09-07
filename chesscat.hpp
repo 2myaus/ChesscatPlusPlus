@@ -47,6 +47,7 @@ namespace chesscat {
         Piece getPiece(Square square);
         bool isMoveLegal(Move move);
         void iterateLegalMovesFromSquare(Square square, std::function<internal::MoveIterationResult(const Square)> func);
+        void PlayMove(Move move, PieceType pawn_promotion);
     };
 
 }
