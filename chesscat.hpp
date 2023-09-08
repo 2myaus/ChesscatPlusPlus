@@ -17,7 +17,8 @@ namespace chesscat {
         std::unique_ptr<Piece[]> board_array;
     public:
         Board(unsigned short cols, unsigned short rows);
-        Board& operator=(const Board& rhs);
+        Board(const Board &copyfrom);
+        Board();
         unsigned short getNumCols();
         unsigned short getNumRows();
         void resize(unsigned short new_cols, unsigned short new_rows);
@@ -40,14 +41,16 @@ namespace chesscat {
         bool squareIsOnPromotionRank(Square square);
         void playMoveNoConfirm(Move move, PieceType pawn_promotion); //Play a move without confirming its legality
         bool movesIntoCheck(Move move); //Check if a move moves into check
-    public:
+    public:        
+        Position(Board board);
         Position();
+        Position(const Position &copyfrom);
         ~Position();
-        Position& operator=(const Position& rhs);
-        Piece getPiece(Square square);
+
+        Board& getBoard();
         bool isMoveLegal(Move move);
         void iterateLegalMovesFromSquare(Square square, std::function<internal::MoveIterationResult(const Square)> func);
-        void PlayMove(Move move, PieceType pawn_promotion);
+        void playMove(Move move, PieceType pawn_promotion);
     };
 
 }

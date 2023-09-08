@@ -1,6 +1,7 @@
 #include "chesscat.hpp"
 #include "pieces.hpp"
 #include "squares.hpp"
+#include <cstdio>
 
 namespace chesscat{
     using namespace internal;
@@ -19,12 +20,55 @@ namespace chesscat{
     Board::Board(unsigned short cols, unsigned short rows) : num_cols(0), num_rows(0){
         resize(cols, rows);
     }
-    Board& Board::operator=(const Board &rhs){
-        resize(rhs.num_cols, rhs.num_rows);
-        for(unsigned int idx = 0; idx < num_cols * num_rows; idx++){
-            board_array[idx] = rhs.board_array[idx];            
+    Board::Board() : Board(8, 8){
+        Piece wPawn = {.color = White, .type = Pawn};
+        Piece wKing = {.color = White, .type = King};
+        Piece wQueen = {.color = White, .type = Queen};
+        Piece wRook = {.color = White, .type = Rook};
+        Piece wKnight = {.color = White, .type = Knight};
+        Piece wBishop = {.color = White, .type = Bishop};
+
+        Piece bPawn = {.color = Black, .type = Pawn};
+        Piece bKing = {.color = Black, .type = King};
+        Piece bQueen = {.color = Black, .type = Queen};
+        Piece bRook = {.color = Black, .type = Rook};
+        Piece bKnight = {.color = Black, .type = Knight};
+        Piece bBishop = {.color = Black, .type = Bishop};
+
+        for (unsigned short col = 0; col <= 7; col++)
+        {
+            setPiece({.row = 1, .col = col}, wPawn);
+            setPiece({.row = 2, .col = col}, EmptyPiece);
+            setPiece({.row = 3, .col = col}, EmptyPiece);
+            setPiece({.row = 4, .col = col}, EmptyPiece);
+            setPiece({.row = 5, .col = col}, EmptyPiece);
+            setPiece({.row = 6, .col = col}, bPawn);
         }
-        return *this;
+
+        setPiece({.row = 0, .col = 0}, wRook);
+
+        setPiece({.row = 0, .col = 0}, wRook);
+        setPiece({.row = 0, .col = 1}, wKnight);
+        setPiece({.row = 0, .col = 2}, wBishop);
+        setPiece({.row = 0, .col = 3}, wQueen);
+        setPiece({.row = 0, .col = 4}, wKing);
+        setPiece({.row = 0, .col = 5}, wBishop);
+        setPiece({.row = 0, .col = 6}, wKnight);
+        setPiece({.row = 0, .col = 7}, wRook);
+
+        setPiece({.row = 7, .col = 0}, bRook);
+        setPiece({.row = 7, .col = 1}, bKnight);
+        setPiece({.row = 7, .col = 2}, bBishop);
+        setPiece({.row = 7, .col = 3}, bQueen);
+        setPiece({.row = 7, .col = 4}, bKing);
+        setPiece({.row = 7, .col = 5}, bBishop);
+        setPiece({.row = 7, .col = 6}, bKnight);
+        setPiece({.row = 7, .col = 7}, bRook);
+    }
+    Board::Board(const Board &copyfrom) : Board(copyfrom.num_cols, copyfrom.num_rows){
+        for(unsigned int idx = 0; idx < num_cols * num_rows; idx++){
+            board_array[idx] = copyfrom.board_array[idx];            
+        }
     }
     unsigned short Board::getNumCols(){
         return num_cols;
@@ -107,17 +151,14 @@ namespace chesscat{
         return (square.col >= 0 && square.row >= 0 && square.col < num_cols && square.row < num_rows);
     }
 
-    Position::Position() : board(8, 8), to_move(White), last_move(EmptyMove) {}
+    Position::Position(Board board) : board(board), to_move(White), last_move(EmptyMove) {}
+    Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
+    Position::Position(const Position &copyfrom) : Position(copyfrom.board) {}
 
-    Position& Position::operator=(const Position& rhs){
-        board = rhs.board;
-        to_move = rhs.to_move;
-        last_move = rhs.last_move;
-
-        return *this;
+    Board& Position::getBoard(){
+        return board;
     }
-
     bool Position::colorCanCapturePiece(Color color, Piece captured){
         if(captured.type == Empty){
             return true;
@@ -370,20 +411,17 @@ namespace chesscat{
         setNextToMove();
     }
     bool Position::movesIntoCheck(Move move){
-        Position &pos_copy = *this;
+        Position pos_copy(*this);
         pos_copy.playMoveNoConfirm(move, Queen); //Promotion piece is irrelevant here
         bool foundKingCapture = false;
         pos_copy.iterateAllPossibleMoves([&pos_copy, &foundKingCapture](const Move move) -> MoveIterationResult{
-            if(pos_copy.getPiece(move.to).type == King){
+            if(pos_copy.getBoard().getPiece(move.to).type == King){
                 foundKingCapture = true;
                 return BreakMoveIteration;
             }
             return ContinueMoveIteration;
         });
         return foundKingCapture;
-    }
-    Piece Position::getPiece(Square square){
-        return board.getPiece(square);
     }
     bool Position::isMoveLegal(Move move){
         bool isMovePossible = false;
@@ -405,7 +443,7 @@ namespace chesscat{
             return internal::ContinueMoveIteration;
         });
     }
-    void Position::PlayMove(Move move, PieceType pawn_promotion){
+    void Position::playMove(Move move, PieceType pawn_promotion){
         if(!isMoveLegal(move)){
             throw "Illegal move!";
         }

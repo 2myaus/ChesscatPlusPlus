@@ -4,6 +4,6 @@
 !/chesscat.hpp
 !/pieces.hpp
 !/squares.hpp
-!/demo/
-!/demo/*
+!/demo/main.cpp
+!/demo/Makefile
 !/Makefile
