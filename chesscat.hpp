@@ -10,6 +10,13 @@
 
 namespace chesscat {
 
+    enum PositionState {
+        Normal,
+        Check,
+        Checkmate,
+        Stalemate
+    };
+
     class Board {
     private:
         unsigned short num_cols;
@@ -35,13 +42,15 @@ namespace chesscat {
         Move last_move;
 
         bool colorCanCapturePiece(Color color, Piece captured); //Check if a color is allowed to capture a piece
-        void iteratePossibleMovesFromSquare(Square square, std::function<internal::MoveIterationResult(const Square)> func);
-        void iterateAllPossibleMoves(std::function<internal::MoveIterationResult(const Move)> func);
+        void iteratePossibleMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Square)> func);
+        void iterateAllPossibleMoves(const std::function<internal::MoveIterationResult(const Move)> func);
         void setNextToMove();
         bool squareIsOnPromotionRank(Square square);
         void playMoveNoConfirm(Move move, PieceType pawn_promotion); //Play a move without confirming its legality
+        bool isCheck();
         bool movesIntoCheck(Move move); //Check if a move moves into check
-    public:        
+        Square findKing(Color color);
+    public:
         Position(Board board);
         Position();
         Position(const Position &copyfrom);
@@ -49,8 +58,10 @@ namespace chesscat {
 
         Board& getBoard();
         bool isMoveLegal(Move move);
-        void iterateLegalMovesFromSquare(Square square, std::function<internal::MoveIterationResult(const Square)> func);
+        void iterateLegalMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Square)> func);
+        void iterateAllLegalMoves(const std::function<internal::MoveIterationResult(const Move)> func);
         void playMove(Move move, PieceType pawn_promotion);
+        PositionState getState();
     };
 
 }

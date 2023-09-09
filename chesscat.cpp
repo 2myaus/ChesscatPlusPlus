@@ -67,7 +67,7 @@ namespace chesscat{
     }
     Board::Board(const Board &copyfrom) : Board(copyfrom.num_cols, copyfrom.num_rows){
         for(unsigned int idx = 0; idx < num_cols * num_rows; idx++){
-            board_array[idx] = copyfrom.board_array[idx];            
+            board_array[idx] = copyfrom.board_array[idx];
         }
     }
     unsigned short Board::getNumCols(){
@@ -151,6 +151,8 @@ namespace chesscat{
         return (square.col >= 0 && square.row >= 0 && square.col < num_cols && square.row < num_rows);
     }
 
+
+
     Position::Position(Board board) : board(board), to_move(White), last_move(EmptyMove) {}
     Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
@@ -168,7 +170,7 @@ namespace chesscat{
         }
         return true;
     }
-    void Position::iteratePossibleMovesFromSquare(Square square, std::function<MoveIterationResult(const Square)> func){ //Stop iteration if func returns to stop
+    void Position::iteratePossibleMovesFromSquare(Square square, const std::function<MoveIterationResult(const Square)> func){ //Stop iteration if func returns to stop
         Piece piece = board.getPiece(square);
         if(piece.color != to_move || piece.type == Empty){
             return;
@@ -376,7 +378,7 @@ namespace chesscat{
                 }
         }
     }
-    void Position::iterateAllPossibleMoves(std::function<MoveIterationResult(const Move)> func){
+    void Position::iterateAllPossibleMoves(const std::function<MoveIterationResult(const Move)> func){
         for(unsigned short row = 0; row < board.getNumRows(); row++){
             for(unsigned short col = 0; col < board.getNumCols(); col++){
                 Square square = {.row = row, .col = col};
@@ -406,9 +408,22 @@ namespace chesscat{
         board.setPiece(move.from, EmptyPiece);
         if(piece.type == Pawn && squareIsOnPromotionRank(move.to)){
             piece.type = pawn_promotion;
-            board.setPiece(move.to, piece);            
+            board.setPiece(move.to, piece);
         }
         setNextToMove();
+    }
+    bool Position::isCheck(){
+        Position pos_copy(*this);
+        pos_copy.setNextToMove();
+        bool foundKingCapture = false;
+        pos_copy.iterateAllPossibleMoves([&pos_copy, &foundKingCapture](const Move move) -> MoveIterationResult{
+            if(pos_copy.getBoard().getPiece(move.to).type == King){
+                foundKingCapture = true;
+                return BreakMoveIteration;
+            }
+            return ContinueMoveIteration;
+        });
+        return foundKingCapture;
     }
     bool Position::movesIntoCheck(Move move){
         Position pos_copy(*this);
@@ -423,6 +438,19 @@ namespace chesscat{
         });
         return foundKingCapture;
     }
+    Square Position::findKing(Color color){
+        for(unsigned short row = 0; row < board.getNumRows(); row++){
+            for(unsigned short col = 0; col < board.getNumCols(); col++){
+                Square square = {.row = row, .col = col};
+                Piece piece = board.getPiece(square);
+                if(piece.type == King && piece.color == color){
+                    return square;
+                }
+            }
+        }
+        return EmptySquare;
+    }
+
     bool Position::isMoveLegal(Move move){
         bool isMovePossible = false;
         iteratePossibleMovesFromSquare(move.from, [&move, &isMovePossible](const Square to) -> MoveIterationResult{
@@ -434,7 +462,7 @@ namespace chesscat{
         });
         return (!movesIntoCheck(move)) && isMovePossible;
     }
-    void Position::iterateLegalMovesFromSquare(Square square, std::function<MoveIterationResult(const Square)> func){
+    void Position::iterateLegalMovesFromSquare(Square square, const std::function<MoveIterationResult(const Square)> func){
         iteratePossibleMovesFromSquare(square, [this, &square, &func](const Square s2) -> MoveIterationResult{
             Move move = {.from = square, .to = s2};
             if(isMoveLegal(move)){
@@ -443,11 +471,40 @@ namespace chesscat{
             return internal::ContinueMoveIteration;
         });
     }
+    void Position::iterateAllLegalMoves(const std::function<internal::MoveIterationResult(const Move)> func){
+        for(unsigned short row = 0; row < board.getNumRows(); row++){
+            for(unsigned short col = 0; col < board.getNumCols(); col++){
+                Square square = {.row = row, .col = col};
+                iterateLegalMovesFromSquare(square, [&func, &square](const Square s2) -> MoveIterationResult{
+                    Move move = {.from = square, .to = s2};
+                    return func(move);
+                });
+            }
+        }
+    }
     void Position::playMove(Move move, PieceType pawn_promotion){
         if(!isMoveLegal(move)){
             throw "Illegal move!";
         }
         playMoveNoConfirm(move, pawn_promotion);
         last_move = move;
+    }
+    PositionState Position::getState(){
+        unsigned int num_moves = 0;
+        iterateAllLegalMoves([&num_moves](const Move move __attribute__((unused))) -> MoveIterationResult{
+            num_moves++;
+            return ContinueMoveIteration;
+        });
+        bool check = isCheck();
+        if((check && num_moves == 0) || (findKing(to_move) == EmptySquare)){
+            return Checkmate;
+        }
+        if(check){
+            return Check;
+        }
+        if(num_moves == 0){
+            return Stalemate;
+        }
+        return Normal;
     }
 }
