@@ -360,11 +360,18 @@ namespace chesscat{
 
             if(board.squareInBounds(advance_square) && board.getPiece(advance_square).type == Empty){
                 if(func(advance_square) == BreakMoveIteration) return;
-                if(board.squareInBounds(double_advance_square) && board.getPiece(double_advance_square).type == Empty){
+                bool canDoubleAdvance = false;
+                if(piece.color == White && square.row <= 1) canDoubleAdvance = true;
+                if(piece.color == Black && square.row >= board.getNumRows() - 2) canDoubleAdvance = true;
+                if(canDoubleAdvance && board.squareInBounds(double_advance_square) && board.getPiece(double_advance_square).type == Empty){
                     if(func(double_advance_square) == BreakMoveIteration) return;
                 }
             }
-            //TODO: Add en passant
+            bool can_passant = board.getPiece(last_move.to).type == Pawn && ((abs(last_move.to.row - last_move.from.row) == 2) || (abs(last_move.to.col - last_move.from.col) == 2));
+            Square passantable_square = EmptySquare;
+            if(can_passant){
+                passantable_square = {.row = (last_move.from.row + last_move.to.row) / 2, .col = (last_move.from.col + last_move.to.col) / 2};
+            }
             if(
                 board.squareInBounds(take_left_square) &&
                 board.getPiece(take_left_square).type != Empty &&
@@ -372,10 +379,22 @@ namespace chesscat{
                 ){
                     if(func(take_left_square) == BreakMoveIteration) return;
                 }
+            else if(board.squareInBounds(take_left_square) &&
+                take_left_square == passantable_square &&
+                colorCanCapturePiece(piece.color, board.getPiece(last_move.to))
+                ){
+                    if(func(take_left_square) == BreakMoveIteration) return;
+                }
             if(
                 board.squareInBounds(take_right_square) &&
                 board.getPiece(take_right_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_right_square))
+                ){
+                    if(func(take_right_square) == BreakMoveIteration) return;
+                }
+            else if(board.squareInBounds(take_right_square) &&
+                take_right_square == passantable_square &&
+                colorCanCapturePiece(piece.color, board.getPiece(last_move.to))
                 ){
                     if(func(take_right_square) == BreakMoveIteration) return;
                 }
@@ -409,9 +428,18 @@ namespace chesscat{
         Piece piece = board.getPiece(move.from);
         board.setPiece(move.to, piece);
         board.setPiece(move.from, EmptyPiece);
-        if(piece.type == Pawn && squareIsOnPromotionRank(move.to)){
-            piece.type = pawn_promotion;
-            board.setPiece(move.to, piece);
+        if(piece.type == Pawn){
+            if(piece.type == Pawn && squareIsOnPromotionRank(move.to)){
+                piece.type = pawn_promotion;
+                board.setPiece(move.to, piece);
+            }
+            bool can_passant = board.getPiece(last_move.to).type == Pawn && ((abs(last_move.to.row - last_move.from.row) == 2) || (abs(last_move.to.col - last_move.from.col) == 2));
+            if(can_passant){
+                Square passantable_square = {.row = (last_move.from.row + last_move.to.row) / 2, .col = (last_move.from.col + last_move.to.col) / 2};
+                if(move.to == passantable_square){
+                    board.setPiece(last_move.to, EmptyPiece);
+                }
+            }
         }
         last_move = move;
         setNextToMove();
