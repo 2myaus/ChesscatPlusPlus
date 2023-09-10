@@ -156,7 +156,10 @@ namespace chesscat{
     Position::Position(Board board) : board(board), to_move(White), last_move(EmptyMove) {}
     Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
-    Position::Position(const Position &copyfrom) : Position(copyfrom.board) {}
+    Position::Position(const Position &copyfrom) : Position(copyfrom.board) {
+        to_move = copyfrom.to_move;
+        last_move = copyfrom.last_move;
+    }
 
     Board& Position::getBoard(){
         return board;
@@ -410,6 +413,7 @@ namespace chesscat{
             piece.type = pawn_promotion;
             board.setPiece(move.to, piece);
         }
+        last_move = move;
         setNextToMove();
     }
     bool Position::isCheck(){
@@ -429,8 +433,9 @@ namespace chesscat{
         Position pos_copy(*this);
         pos_copy.playMoveNoConfirm(move, Queen); //Promotion piece is irrelevant here
         bool foundKingCapture = false;
-        pos_copy.iterateAllPossibleMoves([&pos_copy, &foundKingCapture](const Move move) -> MoveIterationResult{
-            if(pos_copy.getBoard().getPiece(move.to).type == King){
+        Board copy_board = pos_copy.getBoard();
+        pos_copy.iterateAllPossibleMoves([&copy_board, &foundKingCapture](const Move move2) -> MoveIterationResult{
+            if(copy_board.getPiece(move2.to).type == King){
                 foundKingCapture = true;
                 return BreakMoveIteration;
             }
@@ -460,7 +465,8 @@ namespace chesscat{
             }
             return ContinueMoveIteration;
         });
-        return (!movesIntoCheck(move)) && isMovePossible;
+        if(movesIntoCheck(move)) return false;
+        return isMovePossible;
     }
     void Position::iterateLegalMovesFromSquare(Square square, const std::function<MoveIterationResult(const Square)> func){
         iteratePossibleMovesFromSquare(square, [this, &square, &func](const Square s2) -> MoveIterationResult{
@@ -487,7 +493,6 @@ namespace chesscat{
             throw "Illegal move!";
         }
         playMoveNoConfirm(move, pawn_promotion);
-        last_move = move;
     }
     PositionState Position::getState(){
         unsigned int num_moves = 0;

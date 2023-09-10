@@ -83,9 +83,19 @@ int main(){
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
-    /*position.playMove({.from = {6, 4}, .to = {4, 4}}, chesscat::Queen);
+    position.playMove({.from = {6, 4}, .to = {4, 4}}, chesscat::Queen);
     PrintPosition(&(position.getBoard()));
-    std::cout << "\n";*/
+    std::cout << "\n";
+
+    position.playMove({.from = {0, 3}, .to = {4, 7}}, chesscat::Queen);
+    PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
+
+
+    position.playMove({.from = {6, 5}, .to = {5, 5}}, chesscat::Queen);
+    PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
+
     Square from = {.row = 1, .col = 3};
     position.iterateLegalMovesFromSquare(from, [from](Square square) -> chesscat::internal::MoveIterationResult{
         Move m = {.from = from, .to = square};

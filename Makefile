@@ -24,8 +24,11 @@ OBJS = $(SRC:.cpp=.o)
 
 all: $(LIBRARY)
 
-wasm: $(LIBRARY)
 
+debug: $(LIBRARY)
+debug: CXXFLAGS += -g
+
+wasm: $(LIBRARY)
 wasm: CXXFLAGS += $(WASM_FLAGS)
 wasm: CXX = $(WASM_CXX)
 wasm: AR = $(WASM_AR)
