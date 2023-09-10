@@ -77,10 +77,21 @@ int main(){
     chesscat::Position position;
 
     PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
 
     position.playMove({.from = {1, 4}, .to = {3, 4}}, chesscat::Queen);
-
     PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
+
+    /*position.playMove({.from = {6, 4}, .to = {4, 4}}, chesscat::Queen);
+    PrintPosition(&(position.getBoard()));
+    std::cout << "\n";*/
+    Square from = {.row = 1, .col = 3};
+    position.iterateLegalMovesFromSquare(from, [from](Square square) -> chesscat::internal::MoveIterationResult{
+        Move m = {.from = from, .to = square};
+        PrintMove(m);
+        return chesscat::internal::ContinueMoveIteration;
+    });
 
     return 0;
 }
