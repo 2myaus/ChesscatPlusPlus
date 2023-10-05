@@ -1,6 +1,6 @@
 #include "chesscat.hpp"
 #include "pieces.hpp"
-#include "squares.hpp"
+#include "moves.hpp"
 #include <cstdio>
 
 namespace chesscat{
@@ -8,13 +8,85 @@ namespace chesscat{
 
     const Piece EmptyPiece = {.color = White, .type = Empty};
     const Square EmptySquare = {.row = -1, .col = -1};
-    const Move EmptyMove = {.from = EmptySquare, .to = EmptySquare};
 
     bool operator==(const Square& lhs, const Square& rhs) {
         return lhs.row == rhs.row && lhs.col == rhs.col;
     }
+
+    bool operator==(const Piece& lhs, const Piece& rhs){
+        return (lhs.color == rhs.color) && (lhs.type == rhs.type);
+    }
+    
+    bool operator==(const MoveAction& lhs, const MoveAction& rhs){
+        if(lhs.action_type != rhs.action_type) return false;
+        switch(lhs.action_type){
+            case(MovePiece):{
+                if(!(lhs.square0 == rhs.square0)) return false;
+                if(!(lhs.square1 == rhs.square1)) return false;
+                return true;
+            }
+            case(SetPiece):{
+                if(!(lhs.square0 == rhs.square0)) return false;
+                if(!(lhs.piece == rhs.piece)) return false;
+                return true;
+            }
+        }
+        return false;
+    }
+
     bool operator==(const Move& lhs, const Move& rhs) {
-        return lhs.to == rhs.to && lhs.from == rhs.from;
+        Move lhscopy = lhs;
+        Move rhscopy = rhs;
+        if(lhscopy.getNumActions() != rhscopy.getNumActions()) return false;
+        for(int i = 0; i < lhscopy.getNumActions(); i++){
+            if(!(lhscopy == rhscopy)) return false;
+        }
+        return true;
+    }
+    
+
+    Move Move::emptyMove(){
+        Move making;
+        making.num_actions = 0;
+        return making;
+    }
+    Move Move::normalMove(Square from, Square to){
+        Move making;
+
+        making.actions[0].action_type = MovePiece;
+        making.actions[0].square0 = from;
+        making.actions[0].square1 = to;
+
+        making.num_actions = 1;
+        return making;
+    }
+    Move Move::passantMove(Square from, Square to, Square passanted){
+        Move making;
+
+        making.actions[0].action_type = MovePiece;
+        making.actions[0].square0 = from;
+        making.actions[0].square1 = to;
+
+        making.actions[1].action_type = SetPiece;
+        making.actions[1].piece = EmptyPiece;
+        making.actions[1].square0 = passanted;
+
+        making.num_actions = 2;
+        return making;
+    }
+    Move Move::promoteMove(Square from, Square to, Piece promoteTo){
+        Move making;
+
+        making.actions[0].action_type = MovePiece;
+        making.actions[0].square0 = from;
+        making.actions[0].square1 = to;
+
+        making.actions[1].action_type = SetPiece;
+        making.actions[1].piece = promoteTo;
+        making.actions[1].square0 = to;
+
+        making.num_actions = 2;
+        return making;
     }
 
     Board::Board(unsigned short cols, unsigned short rows) : num_cols(0), num_rows(0){
@@ -153,7 +225,7 @@ namespace chesscat{
 
 
 
-    Position::Position(Board board) : board(board), to_move(White), last_move(EmptyMove) {}
+    Position::Position(Board board) : board(board), to_move(White), last_move(Move::emptyMove()) {}
     Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
     Position::Position(const Position &copyfrom) : Position(copyfrom.board) {
@@ -173,7 +245,7 @@ namespace chesscat{
         }
         return true;
     }
-    void Position::iteratePossibleMovesFromSquare(Square square, const std::function<MoveIterationResult(const Square)> func){ //Stop iteration if func returns to stop
+    void Position::iteratePossibleMovesFromSquare(Square square, const std::function<MoveIterationResult(const Move)> func){ //Stop iteration if func returns to stop
         Piece piece = board.getPiece(square);
         if(piece.color != to_move || piece.type == Empty){
             return;
@@ -191,31 +263,31 @@ namespace chesscat{
             //TODO: Add castle
 
             if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
-                if(func(down_left) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, down_left)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(down) && colorCanCapturePiece(to_move, board.getPiece(down))){
-                if(func(down) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, down)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(down_right) && colorCanCapturePiece(to_move, board.getPiece(down_right))){
-                if(func(down_right) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, down_right)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(left) && colorCanCapturePiece(to_move, board.getPiece(left))){
-                if(func(left) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, left)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(right) && colorCanCapturePiece(to_move, board.getPiece(right))){
-                if(func(right) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, right)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(up_left) && colorCanCapturePiece(to_move, board.getPiece(up_left))){
-                if(func(up_left) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, up_left)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(up) && colorCanCapturePiece(to_move, board.getPiece(up))){
-                if(func(up) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, up)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(up_right) && colorCanCapturePiece(to_move, board.getPiece(up_right))){
-                if(func(up_right) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, up_right)) == BreakMoveIteration) return;
             }
         }
         if(piece.type == Knight){
@@ -232,31 +304,31 @@ namespace chesscat{
             Square left_up = {.row = square.row + 1, .col = square.col - 2};
 
             if (board.squareInBounds(up_left) && colorCanCapturePiece(to_move, board.getPiece(up_left))){
-                if(func(up_left) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, up_left)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(up_right) && colorCanCapturePiece(to_move, board.getPiece(up_right))){
-                if(func(up_right) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, up_right)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(right_up) && colorCanCapturePiece(to_move, board.getPiece(right_up))){
-                if(func(right_up) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, right_up)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(right_down) && colorCanCapturePiece(to_move, board.getPiece(right_down))){
-                if(func(right_down) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, right_down)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(down_right) && colorCanCapturePiece(to_move, board.getPiece(down_right))){
-                if(func(down_right) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, down_right)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
-                if(func(down_left) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, down_left)) == BreakMoveIteration) return;
             }
 
             if (board.squareInBounds(left_down) && colorCanCapturePiece(to_move, board.getPiece(left_down))){
-                if(func(left_down) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, left_down)) == BreakMoveIteration) return;
             }
             if (board.squareInBounds(left_up) && colorCanCapturePiece(to_move, board.getPiece(left_up))){
-                if(func(left_up) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, left_up)) == BreakMoveIteration) return;
             }
         }
         if(piece.type == Bishop || piece.type == Queen){
@@ -289,10 +361,10 @@ namespace chesscat{
                     if(hitPiece.type != Empty){
                         if(!colorCanCapturePiece(piece.color, hitPiece)) break; //Hit a piece that cannot be captured, break
 
-                        if(func(current) == BreakMoveIteration) return; //Hit a piece that can be captured, add move then break
+                        if(func(Move::normalMove(square, current)) == BreakMoveIteration) return; //Hit a piece that can be captured, add move then break
                         break;
                     }
-                    if(func(current) == BreakMoveIteration) return; //Didn't hit a piece, continue
+                    if(func(Move::normalMove(square, current)) == BreakMoveIteration) return; //Didn't hit a piece, continue
                     current.col += dx;
                     current.row += dy;
                 }
@@ -328,10 +400,10 @@ namespace chesscat{
                     if(hitPiece.type != Empty){
                         if(!colorCanCapturePiece(piece.color, hitPiece)) break; //Hit a piece that cannot be captured, break
 
-                        if(func(current) == BreakMoveIteration) return; //Hit a piece that can be captured, add move then break
+                        if(func(Move::normalMove(square, current)) == BreakMoveIteration) return; //Hit a piece that can be captured, add move then break
                         break;
                     }
-                    if(func(current) == BreakMoveIteration) return; //Didn't hit a piece, continue
+                    if(func(Move::normalMove(square, current)) == BreakMoveIteration) return; //Didn't hit a piece, continue
                     current.col += dx;
                     current.row += dy;
                 }
@@ -342,6 +414,7 @@ namespace chesscat{
             Square double_advance_square;
             Square take_left_square;
             Square take_right_square;
+            //TODO: Add promotion
             switch (piece.color)
             {
             case White:
@@ -359,55 +432,62 @@ namespace chesscat{
             }
 
             if(board.squareInBounds(advance_square) && board.getPiece(advance_square).type == Empty){
-                if(func(advance_square) == BreakMoveIteration) return;
+                if(func(Move::normalMove(square, advance_square)) == BreakMoveIteration) return;
                 bool canDoubleAdvance = false;
                 if(piece.color == White && square.row <= 1) canDoubleAdvance = true;
                 if(piece.color == Black && square.row >= board.getNumRows() - 2) canDoubleAdvance = true;
                 if(canDoubleAdvance && board.squareInBounds(double_advance_square) && board.getPiece(double_advance_square).type == Empty){
-                    if(func(double_advance_square) == BreakMoveIteration) return;
+                    if(func(Move::normalMove(square, double_advance_square)) == BreakMoveIteration) return;
                 }
             }
-            bool can_passant = board.getPiece(last_move.to).type == Pawn && ((abs(last_move.to.row - last_move.from.row) == 2) || (abs(last_move.to.col - last_move.from.col) == 2));
-            Square passantable_square = EmptySquare;
-            if(can_passant){
-                passantable_square = {.row = (last_move.from.row + last_move.to.row) / 2, .col = (last_move.from.col + last_move.to.col) / 2};
+            for(int i = 0; i < last_move.getNumActions(); i++){
+                //En passant for each action of the move... just in case
+                MoveAction action = last_move.getAction(i);
+
+                if(action.action_type != MovePiece) continue; //NOTE: Maybe this isn't ideal
+                if(board.getPiece(action.square1).type != Pawn) continue;
+                if(abs(action.square0.col - action.square1.col) < 2 &&
+                abs(action.square0.row - action.square1.row) < 2) continue;
+
+                Square passantable_square = action.square1;
+                int dx = action.square1.col - action.square0.col;
+                int dy = action.square1.row - action.square0.row;
+                if(dy > 1) passantable_square.row--;
+                else if(dy < 1) passantable_square.row++;
+                else if(dx > 1) passantable_square.col--;
+                else if(dx < 1) passantable_square.col++;
+
+                if(func(Move::passantMove(square, passantable_square, action.square1)) == BreakMoveIteration) return;
             }
             if(
-                board.squareInBounds(take_left_square) &&
+                board.squareInBounds(take_left_square) && 
                 board.getPiece(take_left_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_left_square))
-                ){
-                    if(func(take_left_square) == BreakMoveIteration) return;
-                }
-            else if(board.squareInBounds(take_left_square) &&
-                take_left_square == passantable_square &&
-                colorCanCapturePiece(piece.color, board.getPiece(last_move.to))
-                ){
-                    if(func(take_left_square) == BreakMoveIteration) return;
-                }
+            ){
+                if(func(Move::normalMove(square, take_left_square)) == BreakMoveIteration) return;
+            }
             if(
                 board.squareInBounds(take_right_square) &&
                 board.getPiece(take_right_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_right_square))
-                ){
-                    if(func(take_right_square) == BreakMoveIteration) return;
-                }
-            else if(board.squareInBounds(take_right_square) &&
-                take_right_square == passantable_square &&
-                colorCanCapturePiece(piece.color, board.getPiece(last_move.to))
-                ){
-                    if(func(take_right_square) == BreakMoveIteration) return;
-                }
+            ){
+                if(func(Move::normalMove(square, take_right_square)) == BreakMoveIteration) return;
+            }
         }
     }
     void Position::iterateAllPossibleMoves(const std::function<MoveIterationResult(const Move)> func){
         for(unsigned short row = 0; row < board.getNumRows(); row++){
             for(unsigned short col = 0; col < board.getNumCols(); col++){
                 Square square = {.row = row, .col = col};
-                iteratePossibleMovesFromSquare(square, [&func, &square](const Square s2) -> MoveIterationResult{
-                    Move move = {.from = square, .to = s2};
-                    return func(move);
+                bool wasBroken = false;
+                iteratePossibleMovesFromSquare(square, [&func, &wasBroken](const Move move) -> MoveIterationResult{
+                    MoveIterationResult result = func(move);
+                    if(result == BreakMoveIteration){
+                        wasBroken = true;
+                    }
+                    return ContinueMoveIteration;
                 });
+                if(wasBroken) return;
             }
         }
     }
@@ -424,52 +504,63 @@ namespace chesscat{
         }
         return square.row == 0;
     }
-    void Position::playMoveNoConfirm(Move move, PieceType pawn_promotion){
-        Piece piece = board.getPiece(move.from);
-        board.setPiece(move.to, piece);
-        board.setPiece(move.from, EmptyPiece);
-        if(piece.type == Pawn){
-            if(piece.type == Pawn && squareIsOnPromotionRank(move.to)){
-                piece.type = pawn_promotion;
-                board.setPiece(move.to, piece);
-            }
-            bool can_passant = board.getPiece(last_move.to).type == Pawn && ((abs(last_move.to.row - last_move.from.row) == 2) || (abs(last_move.to.col - last_move.from.col) == 2));
-            if(can_passant){
-                Square passantable_square = {.row = (last_move.from.row + last_move.to.row) / 2, .col = (last_move.from.col + last_move.to.col) / 2};
-                if(move.to == passantable_square){
-                    board.setPiece(last_move.to, EmptyPiece);
+    void Position::playMoveNoConfirm(Move move){
+        for(int i = 0; i < move.getNumActions(); i++){
+            MoveAction action = move.getAction(i);
+            switch(action.action_type){
+                case(MovePiece):{
+                    Piece piece = board.getPiece(action.square0);
+                    board.setPiece(action.square1, piece);
+                    board.setPiece(action.square0, EmptyPiece);
+                    break;
+                }
+                case(SetPiece):{
+                    board.setPiece(action.square0, action.piece);
+                    break;
                 }
             }
         }
         last_move = move;
         setNextToMove();
     }
-    bool Position::isCheck(){
+    bool Position::canCaptureKing(){
         Position pos_copy(*this);
-        pos_copy.setNextToMove();
         bool foundKingCapture = false;
-        pos_copy.iterateAllPossibleMoves([&pos_copy, &foundKingCapture](const Move move) -> MoveIterationResult{
-            if(pos_copy.getBoard().getPiece(move.to).type == King){
-                foundKingCapture = true;
-                return BreakMoveIteration;
+        pos_copy.iterateAllPossibleMoves([&pos_copy, &foundKingCapture](const Move m) -> MoveIterationResult{
+            Move move = m;
+            for(int i = 0; i < move.getNumActions(); i++){
+                MoveAction action = move.getAction(i);
+                switch(action.action_type){
+                    case(MovePiece):{
+                        if(pos_copy.getBoard().getPiece(action.square1).type == King){
+                            foundKingCapture = true;
+                            return BreakMoveIteration;
+                        }
+                        break;
+                    }
+                    case(SetPiece):{
+                        Piece target = pos_copy.getBoard().getPiece(action.square0);
+                        if(target.type == King && !(action.piece == target)){
+                            foundKingCapture = true;
+                            return BreakMoveIteration;
+                        }
+                        break;
+                    }
+                }
             }
             return ContinueMoveIteration;
         });
         return foundKingCapture;
     }
+    bool Position::isCheck(){
+        Position pos_copy(*this);
+        pos_copy.setNextToMove();
+        return pos_copy.canCaptureKing();
+    }
     bool Position::movesIntoCheck(Move move){
         Position pos_copy(*this);
-        pos_copy.playMoveNoConfirm(move, Queen); //Promotion piece is irrelevant here
-        bool foundKingCapture = false;
-        Board copy_board = pos_copy.getBoard();
-        pos_copy.iterateAllPossibleMoves([&copy_board, &foundKingCapture](const Move move2) -> MoveIterationResult{
-            if(copy_board.getPiece(move2.to).type == King){
-                foundKingCapture = true;
-                return BreakMoveIteration;
-            }
-            return ContinueMoveIteration;
-        });
-        return foundKingCapture;
+        pos_copy.playMoveNoConfirm(move);
+        return pos_copy.canCaptureKing();
     }
     Square Position::findKing(Color color){
         for(unsigned short row = 0; row < board.getNumRows(); row++){
@@ -486,8 +577,9 @@ namespace chesscat{
 
     bool Position::isMoveLegal(Move move){
         bool isMovePossible = false;
-        iteratePossibleMovesFromSquare(move.from, [&move, &isMovePossible](const Square to) -> MoveIterationResult{
-            if(to == move.to){
+        //TODO: Optimize this with move type cases
+        iterateAllPossibleMoves([&move, &isMovePossible](const Move m2) -> MoveIterationResult{
+            if(move == m2){
                 isMovePossible = true;
                 return BreakMoveIteration;
             }
@@ -496,11 +588,10 @@ namespace chesscat{
         if(movesIntoCheck(move)) return false;
         return isMovePossible;
     }
-    void Position::iterateLegalMovesFromSquare(Square square, const std::function<MoveIterationResult(const Square)> func){
-        iteratePossibleMovesFromSquare(square, [this, &square, &func](const Square s2) -> MoveIterationResult{
-            Move move = {.from = square, .to = s2};
-            if(isMoveLegal(move)){
-                return func(s2);
+    void Position::iterateLegalMovesFromSquare(Square square, const std::function<MoveIterationResult(const Move)> func){
+        iteratePossibleMovesFromSquare(square, [this, &func](const Move m2) -> MoveIterationResult{
+            if(isMoveLegal(m2)){
+                return func(m2);
             }
             return internal::ContinueMoveIteration;
         });
@@ -509,18 +600,17 @@ namespace chesscat{
         for(unsigned short row = 0; row < board.getNumRows(); row++){
             for(unsigned short col = 0; col < board.getNumCols(); col++){
                 Square square = {.row = row, .col = col};
-                iterateLegalMovesFromSquare(square, [&func, &square](const Square s2) -> MoveIterationResult{
-                    Move move = {.from = square, .to = s2};
-                    return func(move);
+                iterateLegalMovesFromSquare(square, [&func](const Move m2) -> MoveIterationResult{
+                    return func(m2);
                 });
             }
         }
     }
-    void Position::playMove(Move move, PieceType pawn_promotion){
+    void Position::playMove(Move move){
         if(!isMoveLegal(move)){
             throw "Illegal move!";
         }
-        playMoveNoConfirm(move, pawn_promotion);
+        playMoveNoConfirm(move);
     }
     PositionState Position::getState(){
         unsigned int num_moves = 0;

@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "pieces.hpp"
-#include "squares.hpp"
+#include "moves.hpp"
 
 namespace chesscat {
 
@@ -42,11 +42,12 @@ namespace chesscat {
         Move last_move;
 
         bool colorCanCapturePiece(Color color, Piece captured); //Check if a color is allowed to capture a piece
-        void iteratePossibleMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Square)> func);
+        void iteratePossibleMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Move)> func);
         void iterateAllPossibleMoves(const std::function<internal::MoveIterationResult(const Move)> func);
         void setNextToMove();
         bool squareIsOnPromotionRank(Square square);
-        void playMoveNoConfirm(Move move, PieceType pawn_promotion); //Play a move without confirming its legality
+        void playMoveNoConfirm(Move move); //Play a move without confirming its legality
+        bool canCaptureKing();
         bool isCheck();
         bool movesIntoCheck(Move move); //Check if a move moves into check
         Square findKing(Color color);
@@ -58,9 +59,9 @@ namespace chesscat {
 
         Board& getBoard();
         bool isMoveLegal(Move move);
-        void iterateLegalMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Square)> func);
+        void iterateLegalMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Move)> func);
         void iterateAllLegalMoves(const std::function<internal::MoveIterationResult(const Move)> func);
-        void playMove(Move move, PieceType pawn_promotion);
+        void playMove(Move move);
         PositionState getState();
     };
 
