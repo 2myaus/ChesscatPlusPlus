@@ -43,7 +43,7 @@ char GetPieceChar(Piece piece)
 void PrintMove(Move m)
 {
     char getCol[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-    printf("%c%d to %c%d\n", getCol[m.from.col], m.from.row + 1, getCol[m.to.col], m.to.row + 1);
+    printf("%c%d to %c%d\n", getCol[m.getAction(0).square0.row], m.getAction(0).square0.row + 1, getCol[m.getAction(0).square1.row], m.getAction(0).square1.row + 1);
 }
 
 void PrintPosition(Board *board)
@@ -79,27 +79,26 @@ int main(){
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
-    position.playMove({.from = {1, 4}, .to = {3, 4}}, chesscat::Queen);
+    position.playMove(Move::normalMove({1, 4}, {3, 4}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
-    position.playMove({.from = {6, 4}, .to = {4, 4}}, chesscat::Queen);
+    position.playMove(Move::normalMove({6, 4}, {4, 4}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
-    position.playMove({.from = {0, 3}, .to = {4, 7}}, chesscat::Queen);
+    position.playMove(Move::normalMove({0, 3}, {4, 7}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
 
-    position.playMove({.from = {6, 5}, .to = {5, 5}}, chesscat::Queen);
+    position.playMove(Move::normalMove({6, 5}, {5, 5}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
     Square from = {.row = 1, .col = 3};
-    position.iterateLegalMovesFromSquare(from, [from](Square square) -> chesscat::internal::MoveIterationResult{
-        Move m = {.from = from, .to = square};
-        PrintMove(m);
+    position.iterateLegalMovesFromSquare(from, [from](Move move) -> chesscat::internal::MoveIterationResult{
+        PrintMove(move);
         return chesscat::internal::ContinueMoveIteration;
     });
 

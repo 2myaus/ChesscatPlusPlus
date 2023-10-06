@@ -39,7 +39,7 @@ namespace chesscat{
         Move rhscopy = rhs;
         if(lhscopy.getNumActions() != rhscopy.getNumActions()) return false;
         for(int i = 0; i < lhscopy.getNumActions(); i++){
-            if(!(lhscopy == rhscopy)) return false;
+            if(!(lhscopy.getAction(i) == rhscopy.getAction(i))) return false;
         }
         return true;
     }
