@@ -43,7 +43,13 @@ namespace chesscat{
         }
         return true;
     }
-    
+
+    uint16_t Move::getNumActions(){
+        return num_actions;
+    }
+    MoveAction Move::getAction(uint16_t index){
+        return actions[index];
+    }
 
     Move Move::emptyMove(){
         Move making;
