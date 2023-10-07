@@ -16,7 +16,7 @@ namespace chesscat{
     bool operator==(const Piece& lhs, const Piece& rhs){
         return (lhs.color == rhs.color) && (lhs.type == rhs.type);
     }
-    
+
     bool operator==(const MoveAction& lhs, const MoveAction& rhs){
         if(lhs.action_type != rhs.action_type) return false;
         switch(lhs.action_type){
@@ -462,11 +462,12 @@ namespace chesscat{
                 else if(dy < 1) passantable_square.row++;
                 else if(dx > 1) passantable_square.col--;
                 else if(dx < 1) passantable_square.col++;
-
-                if(func(Move::passantMove(square, passantable_square, action.square1)) == BreakMoveIteration) return;
+                if((passantable_square == take_left_square) || (passantable_square == take_right_square)){
+                    if(func(Move::passantMove(square, passantable_square, action.square1)) == BreakMoveIteration) return;
+                }
             }
             if(
-                board.squareInBounds(take_left_square) && 
+                board.squareInBounds(take_left_square) &&
                 board.getPiece(take_left_square).type != Empty &&
                 colorCanCapturePiece(piece.color, board.getPiece(take_left_square))
             ){
