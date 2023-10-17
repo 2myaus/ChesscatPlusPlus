@@ -36,19 +36,11 @@ namespace chesscat {
         bool squareInBounds(Square square);
     };
 
-    struct ColorInfo{
-        // bool isInGame;
-        bool hasKingMoved;
-        bool hasLowerRookMoved;
-        bool hasUpperRookMoved;
-    };
-
     class Position {
     private:
         Board board;
         Color to_move;
         Move last_move;
-        ColorInfo colors[NUM_COLORS];
 
         bool colorCanCapturePiece(Color color, Piece captured); //Check if a color is allowed to capture a piece
         void iteratePossibleMovesFromSquare(Square square, const std::function<internal::MoveIterationResult(const Move)> func);

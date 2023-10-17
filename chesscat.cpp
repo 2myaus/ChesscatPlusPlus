@@ -6,7 +6,7 @@
 namespace chesscat{
     using namespace internal;
 
-    const Piece EmptyPiece = {.color = White, .type = Empty};
+    const Piece EmptyPiece = {.color = White, .type = Empty, .hasMoved = false};
     const Square EmptySquare = {.row = -1, .col = -1};
 
     bool operator==(const Square& lhs, const Square& rhs) {
@@ -106,19 +106,19 @@ namespace chesscat{
         resize(cols, rows);
     }
     Board::Board() : Board(8, 8){
-        Piece wPawn = {.color = White, .type = Pawn};
-        Piece wKing = {.color = White, .type = King};
-        Piece wQueen = {.color = White, .type = Queen};
-        Piece wRook = {.color = White, .type = Rook};
-        Piece wKnight = {.color = White, .type = Knight};
-        Piece wBishop = {.color = White, .type = Bishop};
+        Piece wPawn = {.color = White, .type = Pawn, .hasMoved = false};
+        Piece wKing = {.color = White, .type = King, .hasMoved = false};
+        Piece wQueen = {.color = White, .type = Queen, .hasMoved = false};
+        Piece wRook = {.color = White, .type = Rook, .hasMoved = false};
+        Piece wKnight = {.color = White, .type = Knight, .hasMoved = false};
+        Piece wBishop = {.color = White, .type = Bishop, .hasMoved = false};
 
-        Piece bPawn = {.color = Black, .type = Pawn};
-        Piece bKing = {.color = Black, .type = King};
-        Piece bQueen = {.color = Black, .type = Queen};
-        Piece bRook = {.color = Black, .type = Rook};
-        Piece bKnight = {.color = Black, .type = Knight};
-        Piece bBishop = {.color = Black, .type = Bishop};
+        Piece bPawn = {.color = Black, .type = Pawn, .hasMoved = false};
+        Piece bKing = {.color = Black, .type = King, .hasMoved = false};
+        Piece bQueen = {.color = Black, .type = Queen, .hasMoved = false};
+        Piece bRook = {.color = Black, .type = Rook, .hasMoved = false};
+        Piece bKnight = {.color = Black, .type = Knight, .hasMoved = false};
+        Piece bBishop = {.color = Black, .type = Bishop, .hasMoved = false};
 
         for (unsigned short col = 0; col <= 7; col++)
         {
@@ -166,7 +166,7 @@ namespace chesscat{
             std::unique_ptr<Piece[]> new_board = std::make_unique<Piece[]>(new_cols * new_rows);
 
             for(unsigned short idx = 0; idx < new_cols * new_rows; idx++){
-                new_board[idx] = {.color = White, .type = Empty};
+                new_board[idx] = {.color = White, .type = Empty, .hasMoved = true};
             }
             Square current_square;
             for(current_square.col = 0; current_square.col < num_cols; current_square.col++){
@@ -238,21 +238,12 @@ namespace chesscat{
 
 
 
-    Position::Position(Board board) : board(board), to_move(White), last_move(Move::emptyMove()) {
-        for(int i = 0; i < NUM_COLORS; i++){
-            colors[i].hasKingMoved = false;
-            colors[i].hasLowerRookMoved = false;
-            colors[i].hasUpperRookMoved = false;
-        }
-    }
+    Position::Position(Board board) : board(board), to_move(White), last_move(Move::emptyMove()) {}
     Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
     Position::Position(const Position &copyfrom) : Position(copyfrom.board) {
         to_move = copyfrom.to_move;
         last_move = copyfrom.last_move;
-        for(int i = 0; i < NUM_COLORS; i++){
-            colors[i] = copyfrom.colors[i];
-        }
     }
 
     Board& Position::getBoard(){
@@ -284,10 +275,9 @@ namespace chesscat{
 
             //TODO: Add castle
 
-            if(!(colors[to_move].hasKingMoved)){
-                if(!(colors[to_move].hasLowerRookMoved)){
-                    Square double_left = {.row = square.row, .col = square.col - 2};
-                    if(!board.squareInBounds(double_left)) goto skip_uppercastle;
+            if(!(piece.hasMoved)){
+                Square double_left = {.row = square.row, .col = square.col - 2};
+                if(board.squareInBounds(double_left)){
                     Square rook_square = EmptySquare;
                     for(
                         Square current = left;
@@ -300,37 +290,35 @@ namespace chesscat{
                             break;
                         }
                     }
-                    if(rook_square == EmptySquare){
-                        goto skip_lowercastle;
-                    }
-                    for(
-                        Square current = left;
-                        current.col > rook_square.col;
-                        current.col--)
-                    {
-                        Piece currentPiece = board.getPiece(current);
-                        if(currentPiece.type != Empty){
-                            goto skip_lowercastle;
+                    if(!((rook_square == EmptySquare) || board.getPiece(rook_square).hasMoved)){
+                        for(
+                            Square current = left;
+                            current.col > rook_square.col;
+                            current.col--)
+                        {
+                            Piece currentPiece = board.getPiece(current);
+                            if(currentPiece.type != Empty){
+                                goto skip_lowercastle;
+                            }
+                            Move currentMove = Move::normalMove(square, current);
+                            if(movesIntoCheck(currentMove)){
+                                goto skip_lowercastle;
+                            }
                         }
-                        Move currentMove = Move::normalMove(square, current);
-                        if(movesIntoCheck(currentMove)){
-                            goto skip_lowercastle;
-                        }
+                        Move castle_move = Move::normalMove(square, double_left);
+                        MoveAction rook_action = {
+                            .action_type = MovePiece,
+                            .square0 = rook_square,
+                            .square1 = left,
+                            .piece = EmptyPiece
+                        };
+                        castle_move.addAction(rook_action);
+                        if(func(castle_move) == BreakMoveIteration) return;
                     }
-                    Move castle_move = Move::normalMove(square, double_left);
-                    MoveAction rook_action = {
-                        .action_type = MovePiece,
-                        .square0 = rook_square,
-                        .square1 = left,
-                        .piece = EmptyPiece
-                    };
-                    castle_move.addAction(rook_action);
-                    if(func(castle_move) == BreakMoveIteration) return;
                 }
 skip_lowercastle:
-                if(!(colors[to_move].hasUpperRookMoved)){
-                    Square double_right = {.row = square.row, .col = square.col + 2};
-                    if(!board.squareInBounds(double_right)) goto skip_uppercastle;
+                Square double_right = {.row = square.row, .col = square.col + 2};
+                if(board.squareInBounds(double_right)){
                     Square rook_square = EmptySquare;
                     for(
                         Square current = right;
@@ -343,32 +331,31 @@ skip_lowercastle:
                             break;
                         }
                     }
-                    if(rook_square == EmptySquare){
-                        goto skip_uppercastle;
-                    }
-                    for(
-                        Square current = right;
-                        current.col < rook_square.col;
-                        current.col++)
-                    {
-                        Piece currentPiece = board.getPiece(current);
-                        if(currentPiece.type != Empty){
-                            goto skip_uppercastle;
+                    if(!((rook_square == EmptySquare) || board.getPiece(rook_square).hasMoved)){
+                        for(
+                            Square current = right;
+                            current.col < rook_square.col;
+                            current.col++)
+                        {
+                            Piece currentPiece = board.getPiece(current);
+                            if(currentPiece.type != Empty){
+                                goto skip_uppercastle;
+                            }
+                            Move currentMove = Move::normalMove(square, current);
+                            if(movesIntoCheck(currentMove)){
+                                goto skip_uppercastle;
+                            }
                         }
-                        Move currentMove = Move::normalMove(square, current);
-                        if(movesIntoCheck(currentMove)){
-                            goto skip_uppercastle;
-                        }
+                        Move castle_move = Move::normalMove(square, double_right);
+                        MoveAction rook_action = {
+                            .action_type = MovePiece,
+                            .square0 = rook_square,
+                            .square1 = right,
+                            .piece = EmptyPiece
+                        };
+                        castle_move.addAction(rook_action);
+                        if(func(castle_move) == BreakMoveIteration) return;
                     }
-                    Move castle_move = Move::normalMove(square, double_right);
-                    MoveAction rook_action = {
-                        .action_type = MovePiece,
-                        .square0 = rook_square,
-                        .square1 = right,
-                        .piece = EmptyPiece
-                    };
-                    castle_move.addAction(rook_action);
-                    if(func(castle_move) == BreakMoveIteration) return;
                 }
 skip_uppercastle:
             ;
@@ -624,11 +611,9 @@ skip_uppercastle:
             switch(action.action_type){
                 case(MovePiece):{
                     Piece piece = board.getPiece(action.square0);
+                    piece.hasMoved = true;
                     board.setPiece(action.square1, piece);
                     board.setPiece(action.square0, EmptyPiece);
-                    if(piece.type == King){
-                        colors[to_move].hasKingMoved = true;
-                    }
                     break;
                 }
                 case(SetPiece):{
