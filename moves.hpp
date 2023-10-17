@@ -36,7 +36,8 @@ namespace chesscat{
     {
         private:
             uint16_t num_actions;
-            MoveAction actions[4];
+            #define MAX_ACTIONS_PER_MOVE 4
+            MoveAction actions[MAX_ACTIONS_PER_MOVE];
         public:
             static Move emptyMove();
             static Move normalMove(Square from, Square to);
@@ -44,6 +45,7 @@ namespace chesscat{
             static Move promoteMove(Square from, Square to, Piece promoteTo);
             uint16_t getNumActions();
             MoveAction getAction(uint16_t index);
+            void addAction(MoveAction action);
     };
 }
 

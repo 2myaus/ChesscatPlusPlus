@@ -87,12 +87,20 @@ int main(){
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
-    position.playMove(Move::normalMove({0, 3}, {4, 7}));
+    position.playMove(Move::normalMove({0, 5}, {1, 4}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 
 
-    position.playMove(Move::normalMove({6, 5}, {5, 5}));
+    position.playMove(Move::normalMove({7, 5}, {6, 4}));
+    PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
+
+    position.playMove(Move::normalMove({0, 6}, {2, 5}));
+    PrintPosition(&(position.getBoard()));
+    std::cout << "\n";
+
+    position.playMove(Move::normalMove({7, 6}, {5, 5}));
     PrintPosition(&(position.getBoard()));
     std::cout << "\n";
 

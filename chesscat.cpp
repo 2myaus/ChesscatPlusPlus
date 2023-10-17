@@ -94,6 +94,13 @@ namespace chesscat{
         making.num_actions = 2;
         return making;
     }
+    void Move::addAction(MoveAction action){
+        if(num_actions >= MAX_ACTIONS_PER_MOVE){
+            throw "Too many actions!";
+        }
+        actions[num_actions] = action;
+        num_actions++;
+    }
 
     Board::Board(unsigned short cols, unsigned short rows) : num_cols(0), num_rows(0){
         resize(cols, rows);
@@ -231,12 +238,21 @@ namespace chesscat{
 
 
 
-    Position::Position(Board board) : board(board), to_move(White), last_move(Move::emptyMove()) {}
+    Position::Position(Board board) : board(board), to_move(White), last_move(Move::emptyMove()) {
+        for(int i = 0; i < NUM_COLORS; i++){
+            colors[i].hasKingMoved = false;
+            colors[i].hasLowerRookMoved = false;
+            colors[i].hasUpperRookMoved = false;
+        }
+    }
     Position::Position() : Position(*new Board()) {}
     Position::~Position() {}
     Position::Position(const Position &copyfrom) : Position(copyfrom.board) {
         to_move = copyfrom.to_move;
         last_move = copyfrom.last_move;
+        for(int i = 0; i < NUM_COLORS; i++){
+            colors[i] = copyfrom.colors[i];
+        }
     }
 
     Board& Position::getBoard(){
@@ -267,6 +283,96 @@ namespace chesscat{
             Square up_right = {.row = square.row + 1, .col = square.col + 1};
 
             //TODO: Add castle
+
+            if(!(colors[to_move].hasKingMoved)){
+                if(!(colors[to_move].hasLowerRookMoved)){
+                    Square double_left = {.row = square.row, .col = square.col - 2};
+                    if(!board.squareInBounds(double_left)) goto skip_uppercastle;
+                    Square rook_square = EmptySquare;
+                    for(
+                        Square current = left;
+                        current.col >= 0;
+                        current.col--)
+                    {
+                        Piece currentPiece = board.getPiece(current);
+                        if((currentPiece.type == Rook) && (currentPiece.color == to_move)){
+                            rook_square = current;
+                            break;
+                        }
+                    }
+                    if(rook_square == EmptySquare){
+                        goto skip_lowercastle;
+                    }
+                    for(
+                        Square current = left;
+                        current.col > rook_square.col;
+                        current.col--)
+                    {
+                        Piece currentPiece = board.getPiece(current);
+                        if(currentPiece.type != Empty){
+                            goto skip_lowercastle;
+                        }
+                        Move currentMove = Move::normalMove(square, current);
+                        if(movesIntoCheck(currentMove)){
+                            goto skip_lowercastle;
+                        }
+                    }
+                    Move castle_move = Move::normalMove(square, double_left);
+                    MoveAction rook_action = {
+                        .action_type = MovePiece,
+                        .square0 = rook_square,
+                        .square1 = left,
+                        .piece = EmptyPiece
+                    };
+                    castle_move.addAction(rook_action);
+                    if(func(castle_move) == BreakMoveIteration) return;
+                }
+skip_lowercastle:
+                if(!(colors[to_move].hasUpperRookMoved)){
+                    Square double_right = {.row = square.row, .col = square.col + 2};
+                    if(!board.squareInBounds(double_right)) goto skip_uppercastle;
+                    Square rook_square = EmptySquare;
+                    for(
+                        Square current = right;
+                        current.col < board.getNumCols();
+                        current.col++)
+                    {
+                        Piece currentPiece = board.getPiece(current);
+                        if((currentPiece.type == Rook) && (currentPiece.color == to_move)){
+                            rook_square = current;
+                            break;
+                        }
+                    }
+                    if(rook_square == EmptySquare){
+                        goto skip_uppercastle;
+                    }
+                    for(
+                        Square current = right;
+                        current.col < rook_square.col;
+                        current.col++)
+                    {
+                        Piece currentPiece = board.getPiece(current);
+                        if(currentPiece.type != Empty){
+                            goto skip_uppercastle;
+                        }
+                        Move currentMove = Move::normalMove(square, current);
+                        if(movesIntoCheck(currentMove)){
+                            goto skip_uppercastle;
+                        }
+                    }
+                    Move castle_move = Move::normalMove(square, double_right);
+                    MoveAction rook_action = {
+                        .action_type = MovePiece,
+                        .square0 = rook_square,
+                        .square1 = right,
+                        .piece = EmptyPiece
+                    };
+                    castle_move.addAction(rook_action);
+                    if(func(castle_move) == BreakMoveIteration) return;
+                }
+skip_uppercastle:
+            ;
+            }
 
             if (board.squareInBounds(down_left) && colorCanCapturePiece(to_move, board.getPiece(down_left))){
                 if(func(Move::normalMove(square, down_left)) == BreakMoveIteration) return;
@@ -512,6 +618,7 @@ namespace chesscat{
         return square.row == 0;
     }
     void Position::playMoveNoConfirm(Move move){
+        //TODO: set rook movement bools
         for(int i = 0; i < move.getNumActions(); i++){
             MoveAction action = move.getAction(i);
             switch(action.action_type){
@@ -519,6 +626,9 @@ namespace chesscat{
                     Piece piece = board.getPiece(action.square0);
                     board.setPiece(action.square1, piece);
                     board.setPiece(action.square0, EmptyPiece);
+                    if(piece.type == King){
+                        colors[to_move].hasKingMoved = true;
+                    }
                     break;
                 }
                 case(SetPiece):{

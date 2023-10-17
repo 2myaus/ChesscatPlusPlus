@@ -11,6 +11,8 @@ namespace chesscat{
         Queen,
         King
     };
+    
+    #define NUM_COLORS 2
     enum Color{
         White,
         Black
